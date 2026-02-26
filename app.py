@@ -49,7 +49,7 @@ st.markdown("""
 
 # ----------------- MATEMATİKSEL VE METEOROLOJİK FONKSİYONLAR -----------------
 def get_wind_direction_name(degree):
-    dirs =
+    dirs = ["Kuzey", "Kuzeydoğu", "Doğu", "Güneydoğu", "Güney", "Güneybatı", "Batı", "Kuzeybatı"]
     return dirs[int((degree + 22.5) / 45) % 8]
 
 def is_onshore_wind(wind_dir, shore_facing):
@@ -87,7 +87,7 @@ def calculate_score(hedef, data, shore_facing):
     score = 0
     tavsiye = ""
     onshore = is_onshore_wind(data["wind_dir"], shore_facing)
-    
+
     # Sentinel Hub NDCI (Klorofil) Simülasyonu - Dalga ve rüzgara bağlı bulanıklık indeksi
     chlorophyll_level = "Yüksek (Bulanık)" if (data["wave"] > 0.8 or onshore) else "Düşük (Berrak)"
 
@@ -97,12 +97,12 @@ def calculate_score(hedef, data, shore_facing):
         if data["wind_speed"] > 15: score += 2
         if 0.5 <= data["wave"] <= 2.0: score += 3
         if chlorophyll_level == "Yüksek (Bulanık)": score += 1
-        
+
         if score >= 7:
             tavsiye = TAKIMLAR
         else:
             tavsiye = TAKIMLAR
-            
+
     elif hedef == "İstavrit":
         # İstavrit Kuralları: Rüzgar < 15km/h + Dalga < 0.5m (Durgun su)
         if data["wind_speed"] < 15: score += 5
@@ -119,19 +119,19 @@ selected_hour = st.sidebar.slider("⏰ Saat", 0, 23, datetime.datetime.now().hou
 target_time = f"{selected_date}T{selected_hour:02d}:00"
 
 st.sidebar.markdown("---")
-map_layer = st.sidebar.radio("🗺️ Harita Katmanları", 
-   )
+map_layer = st.sidebar.radio("🗺️ Harita Katmanları",
+    ("🎯 Av Verimi Haritası", "💨 Rüzgar Yön (Oklar)", "📉 İzobarik Basınç Alanları", "🦠 Klorofil-a (Sentinel)"))
 
 # ----------------- VERİLERİ TOPLAMA VE İŞLEME -----------------
 results = {}
 for mera, info in MERALAR.items():
     w_data, m_data = fetch_meteo_data(info["lat"], info["lon"])
     h_data = extract_hourly_data(w_data, m_data, target_time)
-    
+
     score, takim, onshore, chl = calculate_score(info["hedef"], h_data, info["shore_facing"])
-    
+
     results[mera] = {
-        **info, **h_data, "score": score, "takim": takim, 
+        **info, **h_data, "score": score, "takim": takim,
         "onshore": onshore, "chl": chl, "ruzgar_ad": get_wind_direction_name(h_data["wind_dir"])
     }
 
@@ -155,7 +155,7 @@ elif map_layer == "💨 Rüzgar Yön (Oklar)":
     for mera, d in results.items():
         color = "#ef4444" if d["wind_speed"] > 20 else "#10b981"
         # Rüzgar okunun (üçgen) ucunu rüzgarın estiği yöne çevir
-        angle = d["wind_dir"] - 90 
+        angle = d["wind_dir"] - 90
         folium.RegularPolygonMarker(
             [d["lat"], d["lon"]], number_of_sides=3, radius=12, rotation=angle,
             color=color, fill_color=color, fill_opacity=0.8,
@@ -193,7 +193,7 @@ for i, (mera, d) in enumerate(sorted_spots):
     with cols[i]:
         score_class = "score-high" if d['score'] >= 7 else "score-low"
         onshore_text = "Evet (Kıyıya Dik)" if d['onshore'] else "Hayır (Sırttan/Açıktan)"
-        
+
         st.markdown(f"""
         <div class="glass-card">
             <h4>{mera}</h4>
